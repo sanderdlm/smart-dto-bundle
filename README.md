@@ -1,91 +1,131 @@
 SmartDtoBundle
 ===============
 
-The SmartDtoBundle is a Symfony bundle that leverages the [chrome-php/chrome](https://github.com/chrome-php/chrome) project to render HTML and save the output as a PDF file.
+The SmartDtoBundle is a Symfony bundle that speeds up your CRUD process by adding a touch of magic to your DTOs.
 
 Installation
 ------------
 
 With [composer](https://getcomposer.org), require:
 
-`composer require dreadnip/chrome-pdf-bundle`
-
-Configuration
--------------
-
-The bundle relies on a working, up-to-date Chrome/Chromium instance to work. You must specify the binary in your .env file.
-
-```yaml
-# .env or .env.local
-CHROME_BINARY="/usr/bin/chromium"
-```
+`composer require dreadnip/smart-dto-bundle`
 
 Usage
 -----
 
-The bundle registers two services:
+The bundle has two main components:
 
-- `chrome_pdf.pdf_generator` allows you to generate pdf files from HTML strings. You can autowire the `PdfGenerator` class in your application.
-- `chrome_pdf.browser_factory` is the chrome-php/chrome BrowserFactory class offered as a service within your Symfony application. Use this if you want to fine-tune the PDF generation process. You can use the PdfGenerator class as a starting point and build your custom solution from that.
+- The `MapsTo` attribute, which is placed on DataTransferObjects to specify which Entity corresponds to that DTO.
+- The `AbstractDataTransferObject` class, which acts as a base that all your DTOs extend from, and has some magic methods to handle the movement of data into and out of your DTOs. 
 
-### Render a pdf document from a Twig view and return it from a controller
+### Example set-up
 
+Person entity:
 ```php
-use Dreadnip\SmartDtoBundle\Service\PdfGenerator;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Symfony\Component\HttpFoundation\Response;
-use Twig\Environment;
+<?php
 
-class TestController
+#[ORM\Entity(repositoryClass: PersonRepository::class)]
+class Person
 {
-    public function __invoke(
-        Environment $twig,
-        PdfGenerator $pdfGenerator
-    ): Response {
-        $html = $twig->render('pdf.html.twig');
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    private ?int $id;
 
-        $printOptions = [
-            'printBackground' => true,
-            'displayHeaderFooter' => true,
-            'preferCSSPageSize' => true,
-            'headerTemplate'=> "<div></div>",
-            'footerTemplate' => "<div></div>",
-            'scale' => 1.0,
-        ];
-        
-        $browserOptions = [
-            'proxyServer' => '127.0.0.1'
-        ];
+    #[ORM\Column]
+    private string $firstName;
 
-        $path = $pdfGenerator->generate($html, 'files/test.pdf', $options, $browserOptions);
+    #[ORM\Column]
+    private string $lastName;
 
-        return new BinaryFileResponse($path);
+    #[ORM\Embedded(class: Address::class)]
+    private Address $address;
+
+    public function __construct(
+        string $firstName,
+        string $lastName,
+        Address $address,
+    ) {
+        $this->firstName = $firstName;
+        $this->lastName = $lastName;
+        $this->address = $address;
+    }
+
+    public function update(
+        string $firstName,
+        string $lastName,
+        Address $address,
+    ): void {
+        $this->firstName = $firstName;
+        $this->lastName = $lastName;
+        $this->address = $address;
+    }
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function getFirstName(): string
+    {
+        return $this->firstName;
+    }
+
+    public function getLastName(): string
+    {
+        return $this->lastName;
+    }
+
+    public function getAddress(): Address
+    {
+        return $this->address;
     }
 }
-```
-[Print options](https://github.com/chrome-php/chrome#print-as-pdf) can be used to control the rendering of the PDF. [Browser options](https://github.com/chrome-php/chrome#options) are available to control the headless Chrome instance that will be used to render the PDF. A list of all available options can be found in the chrome-php/chrome repository.
-
-### Base template
-
-The bundle comes with a base template that can be extended to build PDFs with. This includes helpers for page lay-out and breaking. The template comes with two blocks `styles` for CSS and `content` for the actual PDF content.
-
-```html
-{% extends '@ChromePdf/base.html.twig' %}
-
-{% block content %}
-    <section class="page page-one break-after">
-        <h1>First page</h1>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dolores enim maxime quasi? Ab accusantium at commodi corporis, distinctio earum facilis harum ipsum maxime, nisi nostrum obcaecati odit officia quod voluptatem?</p>
-    </section>
-    <section class="page page-two">
-        <h2>Second page</h2>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dolores enim maxime quasi? Ab accusantium at commodi corporis, distinctio earum facilis harum ipsum maxime, nisi nostrum obcaecati odit officia quod voluptatem?</p>
-    </section>
-{% endblock %}
 
 ```
+PersonDataTransferObject:
+```php
+<?php
 
-Credits
--------
+#[MapsTo(entity:Person::class)]
+class PersonDataTransferObject extends AbstractDataTransferObject
+{
+    #[Assert\NotNull]
+    public ?string $firstName = null;
 
-This bundle is nothing more than a simple wrapper around the awesome [chrome-php/chrome](https://github.com/chrome-php/headless-chromium-php) project.
+    #[Assert\NotNull]
+    public ?string $lastName = null;
+
+    #[Assert\NotNull]
+    public ?AddressDataTransferObject $address = null;
+}
+```
+
+## Usage
+
+If nothing is passed to the constructor, the DTO is a basic, empty object. You can use it as blank form data.
+```php
+$createPerson = new PersonDataTransferObject();
+```
+If you call the create method on the DTO, an attempt is made to generate a new entity instance. In short, the constructor of the entity class in the `MapsTo` attribute is called with the data that is currently inside the DTO
+```php
+$person = $personDataTransferObject->create();
+````
+If an existing entity is passed to the DTO constructor, all the properties of the DTO that have a corresponding value in the entity will be filled. You can then use this as form data for an update/edit step.
+```php
+$existingPerson = $personRepository->find(1);
+$updatePerson = new PersonDataTransferObject($existingPerson);
+```
+If you call the update method of the DTO, an attempt is made to update the original entity (passed to the constructor), with the values currently in the DTO. This only works if your entity has an update method like the Person entity above. You can then flush the entity to persist the updates values.
+```php
+$personDataTransferObject->update();
+```
+You can extend the DTO and still maintain the same functionality. You don't have to repeat the attribute. This way you can create commands and handlers that make sense.
+```php
+<?php
+
+class CreatePerson extends PersonDataTransferObject
+{
+}
+```
+Both the create and update methods work recursively. Nested DTOs and entities will behave exactly like the base DTO.
