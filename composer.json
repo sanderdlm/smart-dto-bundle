@@ -1,0 +1,41 @@
+{
+  "name": "dreadnip/smart-dto-bundle",
+  "type": "symfony-bundle",
+  "description": "Smarter data transfer objects",
+  "keywords": ["Symfony", "DTO", "DataTransferObject", "Reflection"],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Sander De la Marche",
+      "email": "sander@sumocoders.be"
+    }
+  ],
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "php": "^8.0",
+    "symfony/dependency-injection": "^5.2 || ^6.0",
+    "symfony/config": "^5.2 || ^6.0",
+    "doctrine/orm": "^2.11",
+    "symfony/property-access": "^6.0",
+    "symfony/property-info": "^6.0",
+    "symfony/http-kernel": "^6.0"
+  },
+  "require-dev": {
+    "roave/security-advisories": "dev-master",
+    "phpunit/phpunit": "^8.5.13 || ^9.5.0",
+    "symfony/phpunit-bridge": "^4.3",
+    "squizlabs/php_codesniffer": "^3.6",
+    "phpstan/phpstan-symfony": "^1.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "Dreadnip\\SmartDtoBundle\\": "src/"
+    }
+  },
+  "autoload-dev":{
+    "psr-4" : {
+      "Dreadnip\\SmartDtoBundle\\Test\\": "tests/"
+    }
+  }
+}
