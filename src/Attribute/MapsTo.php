@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Attribute;
+namespace Dreadnip\SmartDtoBundle\Attribute;
 
 use Attribute;
 
