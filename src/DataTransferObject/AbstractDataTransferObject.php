@@ -2,8 +2,8 @@
 
 namespace Dreadnip\SmartDtoBundle\DataTransferObject;
 
-use App\Attribute\MapsTo;
 use Doctrine\ORM\Mapping\Entity;
+use Dreadnip\SmartDtoBundle\Attribute\MapsTo;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionMethod;
@@ -58,7 +58,11 @@ abstract class AbstractDataTransferObject
                         $className = $type->getClassName();
 
                         // If the property is a class that extends this class, handle it recursively
-                        if ($className !== null && $this->isDataTransferObject($className)) {
+                        if (
+                            $className !== null &&
+                            $this->isDataTransferObject($className) &&
+                            $sourceValue !== null
+                        ) {
                             $this->{$property} = new $className($sourceValue);
                         } else {
                             $this->{$property} = $sourceValue;
@@ -71,12 +75,16 @@ abstract class AbstractDataTransferObject
 
     public function create(): object
     {
+        $this->mappedClass = $this->detectMappedClass();
+
         return $this->callConstructor($this->mappedClass, $this);
     }
 
-    public function update(): void
+    public function update(): object
     {
         $this->callUpdate($this->source, $this);
+
+        return $this->source;
     }
 
     private function callConstructor(string $class, AbstractDataTransferObject $dto): object
@@ -129,13 +137,18 @@ abstract class AbstractDataTransferObject
             // If the property is a class, e.g. App\Entity\Address and the
             // property in our DTO, e.g. $this->address is a DTO
             if (!$propertyType->isBuiltin() && $this->isDataTransferObject($matchingDtoProperty)) {
-                $sourceValue = $propertyAccessor->getValue($this->source, $name);
+                // If we're running an update, we have to check for pre-existing entities to update
+                if (isset($this->source)) {
+                    $sourceValue = $propertyAccessor->getValue($this->source, $name);
 
-                // If there is a pre-existing entity, update it and return the object
-                if ($this->isEntity($propertyName) && $sourceValue instanceof $propertyName) {
-                    $this->callUpdate($sourceValue, $matchingDtoProperty);
+                    // If there is a pre-existing entity, update it and return the object
+                    if ($this->isEntity($propertyName) && $sourceValue instanceof $propertyName) {
+                        $this->callUpdate($sourceValue, $matchingDtoProperty);
 
-                    $resolvedParameters[] = $sourceValue;
+                        $resolvedParameters[] = $sourceValue;
+                    } else {
+                        $resolvedParameters[] = $this->callConstructor($propertyName, $matchingDtoProperty);
+                    }
                 } else {
                     $resolvedParameters[] = $this->callConstructor($propertyName, $matchingDtoProperty);
                 }
