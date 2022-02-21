@@ -1,7 +1,12 @@
 SmartDtoBundle
 ===============
 
-The SmartDtoBundle is a Symfony bundle that speeds up your CRUD process by adding a touch of magic to your DTOs.
+The SmartDtoBundle makes it faster to work with data transfer objects and Doctrine entities in a Symfony application, by adding a touch of magic to your DTOs. 
+
+Features:
+* Automatic hydration of DTO objects from an entity
+* Creating new instances of entities from a DTO
+* Updating existing entities through a DTO
 
 Installation
 ------------
@@ -90,33 +95,33 @@ PersonDataTransferObject:
 #[MapsTo(entity:Person::class)]
 class PersonDataTransferObject extends AbstractDataTransferObject
 {
-    #[Assert\NotNull]
+    #[Assert\NotBlank]
     public ?string $firstName = null;
 
-    #[Assert\NotNull]
+    #[Assert\NotBlank]
     public ?string $lastName = null;
 
-    #[Assert\NotNull]
+    #[Assert\NotBlank]
     public ?AddressDataTransferObject $address = null;
 }
 ```
 
 ## Usage
 
-If nothing is passed to the constructor, the DTO is a basic, empty object. You can use it as blank form data.
+If nothing is passed to the constructor, . You can use it as blank form data.
 ```php
 $createPerson = new PersonDataTransferObject();
 ```
-If you call the create method on the DTO, an attempt is made to generate a new entity instance. In short, the constructor of the entity class in the `MapsTo` attribute is called with the data that is currently inside the DTO
+If you call the create method on the DTO, an attempt is made to generate a new entity instance. In short, the constructor of the entity class in the `MapsTo` attribute is called with the data that is currently inside the DTO.
 ```php
 $person = $personDataTransferObject->create();
 ````
-If an existing entity is passed to the DTO constructor, all the properties of the DTO that have a corresponding value in the entity will be filled. You can then use this as form data for an update/edit step.
+If an existing entity is passed to the DTO constructor, the DTO will be hydrated with the entities' data. You can then use this as form data for an update/edit step.
 ```php
 $existingPerson = $personRepository->find(1);
 $updatePerson = new PersonDataTransferObject($existingPerson);
 ```
-If you call the update method of the DTO, an attempt is made to update the original entity (passed to the constructor), with the values currently in the DTO. This only works if your entity has an update method like the Person entity above. You can then flush the entity to persist the updates values.
+If you call the update method of the DTO, an attempt is made to update the original entity (which you passed to the constructor), with the values currently in the DTO. This only works if your entity has an update method like the Person entity above. You can then flush the entity to persist the updates values.
 ```php
 $personDataTransferObject->update();
 ```
