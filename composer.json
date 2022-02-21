@@ -37,5 +37,8 @@
     "psr-4" : {
       "Dreadnip\\SmartDtoBundle\\Test\\": "tests/"
     }
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit"
   }
 }
