@@ -108,7 +108,7 @@ class PersonDataTransferObject extends AbstractDataTransferObject
 
 ## Usage
 
-If nothing is passed to the constructor, . You can use it as blank form data.
+If nothing is passed to the constructor, you can use it as blank form data.
 ```php
 $createPerson = new PersonDataTransferObject();
 ```
@@ -116,12 +116,12 @@ If you call the create method on the DTO, an attempt is made to generate a new e
 ```php
 $person = $personDataTransferObject->create();
 ````
-If an existing entity is passed to the DTO constructor, the DTO will be hydrated with the entities' data. You can then use this as form data for an update/edit step.
+If an existing entity is passed to the named constructor, the DTO will be hydrated with the entities' data. Any values already set in the DTO (for example in the constructor), will be skipped by the hydration step. You can then use this as form data for an update/edit step.
 ```php
 $existingPerson = $personRepository->find(1);
-$updatePerson = new PersonDataTransferObject($existingPerson);
+$updatePerson = PersonDataTransferObject::from($existingPerson);
 ```
-If you call the update method of the DTO, an attempt is made to update the original entity (which you passed to the constructor), with the values currently in the DTO. This only works if your entity has an update method like the Person entity above. You can then flush the entity to persist the updates values.
+If you call the update method of the DTO, an attempt is made to update the original entity (which you passed to the named constructor), with the values currently in the DTO. This only works if your entity has an update method like the Person entity above. You can then flush the entity to persist the updates values.
 ```php
 $personDataTransferObject->update();
 ```

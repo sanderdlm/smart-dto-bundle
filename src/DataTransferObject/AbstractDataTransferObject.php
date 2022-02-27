@@ -4,6 +4,8 @@ namespace Dreadnip\SmartDtoBundle\DataTransferObject;
 
 use Doctrine\ORM\Mapping\Entity;
 use Dreadnip\SmartDtoBundle\Attribute\MapsTo;
+use Dreadnip\SmartDtoBundle\Exception\DataTransferObjectException;
+use Dreadnip\SmartDtoBundle\Exception\MissingPropertyTypeException;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionMethod;
@@ -44,29 +46,38 @@ abstract class AbstractDataTransferObject
 
         if (!empty($properties)) {
             foreach ($properties as $property) {
-                // Only continue if the property is writable (a.k.a. public)
-                if ($propertyInfo->isWritable(static::class, $property)) {
-                    // Get the value from the passed source object
-                    $sourceValue = $propertyAccessor->getValue($dto->source, $property);
+                // If a property is already set in the constructor, don't override it
+                if ($dto->{$property} !== null) {
+                    continue;
+                }
 
-                    // Get the property type & class name
-                    $types = $propertyInfo->getTypes(static::class, $property);
+                // If the property is not writable (a.k.a. public), skip it
+                if (!$propertyInfo->isWritable(static::class, $property)) {
+                    continue;
+                }
 
-                    if (!empty($types)) {
-                        $type = reset($types);
-                        $className = $type->getClassName();
+                // Get the value from the passed source object
+                $sourceValue = $propertyAccessor->getValue($dto->source, $property);
 
-                        // If the property is a class that extends this class, handle it recursively
-                        if (
-                            $className !== null &&
-                            $dto->isDataTransferObject($className) &&
-                            $sourceValue !== null
-                        ) {
-                            $dto->{$property} = $className::from($sourceValue);
-                        } else {
-                            $dto->{$property} = $sourceValue;
-                        }
-                    }
+                // Get the property type & class name
+                $types = $propertyInfo->getTypes(static::class, $property);
+
+                if (empty($types)) {
+                    throw DataTransferObjectException::missingPropertyTypeHint($property, static::class);
+                }
+
+                $type = reset($types);
+                $className = $type->getClassName();
+
+                // If the property is a class that extends this class, handle it recursively
+                if (
+                    $className !== null &&
+                    $sourceValue !== null &&
+                    $dto->isDataTransferObject($className)
+                ) {
+                    $dto->{$property} = $className::from($sourceValue);
+                } else {
+                    $dto->{$property} = $sourceValue;
                 }
             }
         }
@@ -89,7 +100,7 @@ abstract class AbstractDataTransferObject
     private function callConstructor(string $class, AbstractDataTransferObject $dto): object
     {
         if (!method_exists($class, '__construct')) {
-            throw new \RuntimeException('Method "' . '__construct' . '" not found in ' . $class);
+            throw DataTransferObjectException::missingMethod('__constructor', $class);
         }
 
         $reflectionMethod = new ReflectionMethod($class, '__construct');
@@ -102,7 +113,7 @@ abstract class AbstractDataTransferObject
     private function callUpdate(object $entity, AbstractDataTransferObject $dto): object
     {
         if (!method_exists($entity, 'update')) {
-            throw new \RuntimeException('Method "' . 'update' . '" not found in ' . get_class($entity));
+            throw DataTransferObjectException::missingMethod('update', get_class($entity));
         }
 
         $reflectionMethod = new ReflectionMethod($entity, 'update');
@@ -166,15 +177,19 @@ abstract class AbstractDataTransferObject
         $thisClass = get_class($this);
         $parentClass = get_parent_class($this);
 
+        if ($parentClass === false) {
+            $parentClass = null;
+        }
+
         $attribute = $this->readAttribute($thisClass, MapsTo::class);
 
         /** @phpstan-ignore-next-line Bug, see https://github.com/phpstan/phpstan/issues/4302 */
-        if ($attribute === null && $parentClass !== false) {
+        if ($attribute === null && $parentClass !== null) {
             $attribute = $this->readAttribute($parentClass, MapsTo::class);
         }
 
         if ($attribute === null) {
-            throw new RuntimeException('Missing MapsTo attribute on ' . $thisClass . ' or ' . $parentClass);
+            throw DataTransferObjectException::missingAttribute('MapsTo', $thisClass, $parentClass);
         }
 
         /** @var MapsTo $instance */
@@ -196,7 +211,7 @@ abstract class AbstractDataTransferObject
     private function readAttribute(string $class, string $attribute): ?ReflectionAttribute
     {
         if (!class_exists($class)) {
-            throw new RuntimeException('Class ' . $class . ' does not exist');
+            throw DataTransferObjectException::nonExistentClass($class);
         }
 
         $reflectionClass = new ReflectionClass($class);
