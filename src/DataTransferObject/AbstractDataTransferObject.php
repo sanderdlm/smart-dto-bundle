@@ -5,7 +5,6 @@ namespace Dreadnip\SmartDtoBundle\DataTransferObject;
 use Doctrine\ORM\Mapping\Entity;
 use Dreadnip\SmartDtoBundle\Attribute\MapsTo;
 use Dreadnip\SmartDtoBundle\Exception\DataTransferObjectException;
-use Dreadnip\SmartDtoBundle\Exception\MissingPropertyTypeException;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionMethod;
@@ -137,7 +136,7 @@ abstract class AbstractDataTransferObject
             $name = $parameter->getName();
 
             if (!property_exists($dto, $name)) {
-                throw new \RuntimeException('Missing property ' . $name . ' on ' . get_class($dto) . '.');
+                throw DataTransferObjectException::missingProperty($name, get_class($dto));
             }
 
             $matchingDtoProperty = $dto->{$name};

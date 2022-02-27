@@ -6,6 +6,17 @@ use Exception;
 
 class DataTransferObjectException extends Exception
 {
+    public static function missingProperty(
+        string $propertyName,
+        string $className,
+    ): self {
+        return new self(sprintf(
+            'Missing property "%s" on class "%s".',
+            $propertyName,
+            $className
+        ));
+    }
+
     public static function missingPropertyTypeHint(
         string $propertyName,
         string $className,
