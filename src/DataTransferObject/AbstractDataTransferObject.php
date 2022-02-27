@@ -9,7 +9,6 @@ use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
-use RuntimeException;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\PropertyInfo\Extractor\ReflectionExtractor;
 use Symfony\Component\PropertyInfo\PropertyInfoExtractor;
@@ -27,7 +26,7 @@ abstract class AbstractDataTransferObject
         $dto->detectMappedClass();
 
         if (!$source instanceof $dto->mappedClass) {
-            throw new RuntimeException('Passed object is not the same class as configured by the MapsTo attribute.');
+            throw DataTransferObjectException::mappedClassMismatch($dto->mappedClass, get_class($source));
         }
 
         $dto->source = $source;

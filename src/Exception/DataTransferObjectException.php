@@ -60,4 +60,17 @@ class DataTransferObjectException extends Exception
             $className
         ));
     }
+
+    public static function mappedClassMismatch(
+        string $mappedClassName,
+        string $passedClassname,
+    ): self {
+        return new self(sprintf(
+            'Passed object "%s" is not the same class as configured by the MapsTo attribute (%s)',
+            $passedClassname,
+            $mappedClassName
+        ));
+    }
+
+
 }
