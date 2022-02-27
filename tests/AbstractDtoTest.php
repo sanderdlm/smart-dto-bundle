@@ -97,7 +97,7 @@ class AbstractDtoTest extends TestCase
             $friend
         );
 
-        $dto = new PersonDataTransferObject($entity);
+        $dto = PersonDataTransferObject::from($entity);
         $this->assertInstanceOf(AddressDataTransferObject::class, $dto->address);
         $this->assertInstanceOf(PersonDataTransferObject::class, $dto->bestFriend);
         $this->assertNull($dto->bestFriend->bestFriend);
@@ -131,7 +131,7 @@ class AbstractDtoTest extends TestCase
             $friend
         );
 
-        $dto = new PersonDataTransferObject($entity);
+        $dto = PersonDataTransferObject::from($entity);
 
         $dto->firstName = 'Freddy';
         $dto->address->street = 'Foo street';

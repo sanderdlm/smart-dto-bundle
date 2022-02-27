@@ -18,19 +18,18 @@ abstract class AbstractDataTransferObject
     protected object $source;
     protected string $mappedClass;
 
-    final public function __construct(?object $source = null)
+    public static function from(object $source): static
     {
-        if ($source === null) {
-            return;
-        }
+        $class = static::class;
+        $dto = new $class();
 
-        $this->mappedClass = $this->detectMappedClass();
+        $dto->detectMappedClass();
 
-        if (!$source instanceof $this->mappedClass) {
+        if (!$source instanceof $dto->mappedClass) {
             throw new RuntimeException('Passed object is not the same class as configured by the MapsTo attribute.');
         }
 
-        $this->source = $source;
+        $dto->source = $source;
 
         $propertyAccessor = PropertyAccess::createPropertyAccessor();
         $propertyInfo = new PropertyInfoExtractor(
@@ -48,7 +47,7 @@ abstract class AbstractDataTransferObject
                 // Only continue if the property is writable (a.k.a. public)
                 if ($propertyInfo->isWritable(static::class, $property)) {
                     // Get the value from the passed source object
-                    $sourceValue = $propertyAccessor->getValue($this->source, $property);
+                    $sourceValue = $propertyAccessor->getValue($dto->source, $property);
 
                     // Get the property type & class name
                     $types = $propertyInfo->getTypes(static::class, $property);
@@ -60,31 +59,31 @@ abstract class AbstractDataTransferObject
                         // If the property is a class that extends this class, handle it recursively
                         if (
                             $className !== null &&
-                            $this->isDataTransferObject($className) &&
+                            $dto->isDataTransferObject($className) &&
                             $sourceValue !== null
                         ) {
-                            $this->{$property} = new $className($sourceValue);
+                            $dto->{$property} = $className::from($sourceValue);
                         } else {
-                            $this->{$property} = $sourceValue;
+                            $dto->{$property} = $sourceValue;
                         }
                     }
                 }
             }
         }
+
+        return $dto;
     }
 
     public function create(): object
     {
-        $this->mappedClass = $this->detectMappedClass();
+        $this->detectMappedClass();
 
         return $this->callConstructor($this->mappedClass, $this);
     }
 
     public function update(): object
     {
-        $this->callUpdate($this->source, $this);
-
-        return $this->source;
+        return $this->callUpdate($this->source, $this);
     }
 
     private function callConstructor(string $class, AbstractDataTransferObject $dto): object
@@ -100,7 +99,7 @@ abstract class AbstractDataTransferObject
         return new $class(...$parameters);
     }
 
-    private function callUpdate(object $entity, AbstractDataTransferObject $dto): void
+    private function callUpdate(object $entity, AbstractDataTransferObject $dto): object
     {
         if (!method_exists($entity, 'update')) {
             throw new \RuntimeException('Method "' . 'update' . '" not found in ' . get_class($entity));
@@ -111,6 +110,8 @@ abstract class AbstractDataTransferObject
         $parameters = $this->resolveMethodParameters($reflectionMethod, $dto);
 
         $entity->update(...$parameters);
+
+        return $entity;
     }
 
     /**
@@ -160,7 +161,7 @@ abstract class AbstractDataTransferObject
         return $resolvedParameters;
     }
 
-    private function detectMappedClass(): string
+    private function detectMappedClass(): void
     {
         $thisClass = get_class($this);
         $parentClass = get_parent_class($this);
@@ -179,7 +180,7 @@ abstract class AbstractDataTransferObject
         /** @var MapsTo $instance */
         $instance = $attribute->newInstance();
 
-        return $instance->getEntity();
+        $this->mappedClass = $instance->getEntity();
     }
 
     private function isDataTransferObject(mixed $class): bool
