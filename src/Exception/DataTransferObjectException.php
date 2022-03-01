@@ -39,16 +39,17 @@ class DataTransferObjectException extends Exception
         ));
     }
 
+    /**
+     * @param array<string> $classes
+     */
     public static function missingAttribute(
         string $attributeName,
-        string $className,
-        ?string $parentClassName = null,
+        array $classes
     ): self {
         return new self(sprintf(
-            'Missing attribute "%s" on class "%s" and parent class "%s".',
+            'Missing attribute "%s" on classes: "%s"',
             $attributeName,
-            $className,
-            $parentClassName
+            implode(',', $classes)
         ));
     }
 
@@ -72,5 +73,8 @@ class DataTransferObjectException extends Exception
         ));
     }
 
-
+    public static function updateWithoutSource(): self
+    {
+        return new self('Running an update without passing a source entity is invalid.');
+    }
 }
