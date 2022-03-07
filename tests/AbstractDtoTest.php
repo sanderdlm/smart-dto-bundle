@@ -2,7 +2,6 @@
 
 namespace Dreadnip\SmartDtoBundle\Test;
 
-use Doctrine\Common\Collections\ArrayCollection;
 use Dreadnip\SmartDtoBundle\Test\Models\Address;
 use Dreadnip\SmartDtoBundle\Test\Models\AddressDataTransferObject;
 use Dreadnip\SmartDtoBundle\Test\Models\CreatePerson;
@@ -15,35 +14,39 @@ use PHPUnit\Framework\TestCase;
 
 class AbstractDtoTest extends TestCase
 {
-    public function testNamedConstructor(): void
-    {
-        $friend = new Person(
-            'Luke',
-            'Skywalker',
-            new Address(
-                'Main street',
-                '5B',
-                'Seattle',
-                '123456',
-                Province::Antwerp
-            ),
-            null
-        );
+    private Person $dummyEntity;
 
-        $entity = new Person(
+    protected function setUp(): void
+    {
+        $this->dummyEntity = new Person(
             'John',
             'Doe',
             new Address(
                 'Main street',
                 '5B',
-                'Seattle',
                 '123456',
+                'Seattle',
                 Province::Antwerp
             ),
-            $friend
+            new Person(
+                'Luke',
+                'Skywalker',
+                new Address(
+                    'Main street',
+                    '5B',
+                    '123456',
+                    'Seattle',
+                    Province::Antwerp
+                ),
+                null
+            )
         );
+    }
 
-        $dto = PersonDataTransferObject::fromEntity($entity);
+    public function testNamedConstructor(): void
+    {
+        $dto = PersonDataTransferObject::fromEntity($this->dummyEntity);
+
         $this->assertInstanceOf(AddressDataTransferObject::class, $dto->address);
         $this->assertInstanceOf(PersonDataTransferObject::class, $dto->bestFriend);
         $this->assertNull($dto->bestFriend->bestFriend);
@@ -51,118 +54,47 @@ class AbstractDtoTest extends TestCase
 
     public function testEntityCreation(): void
     {
-        $addressDto = new AddressDataTransferObject();
-        $addressDto->street = 'Main street';
-        $addressDto->number = '5B';
-        $addressDto->city = 'Seattle';
-        $addressDto->zipCode = '123456';
-        $addressDto->province = Province::Antwerp;
+        $dto = CreatePerson::fromEntity($this->dummyEntity);
 
-        $friendDto = new CreatePerson();
-        $friendDto->firstName = 'Luke';
-        $friendDto->lastName = 'Skywalker';
-        $friendDto->address = $addressDto;
-        $friendDto->bestFriend = null;
-        $friendDto->friends = new ArrayCollection();
+        /** @var Person $newEntity */
+        $newEntity = $dto->create();
 
-        $dto = new CreatePerson();
-        $dto->firstName = 'John';
-        $dto->lastName = 'Doe';
-        $dto->address = $addressDto;
-        $dto->bestFriend = $friendDto;
-        $dto->friends = new ArrayCollection();
-
-        /** @var Person $entity */
-        $entity = $dto->create();
-
-        $this->assertInstanceOf(Person::class, $entity);
-        $this->assertEquals('John', $entity->getFirstName());
-        $this->assertEquals('Doe', $entity->getLastName());
-        $this->assertInstanceOf(Address::class, $entity->getAddress());
-        $this->assertEquals('Main street', $entity->getAddress()->getStreet());
-        $this->assertEquals('5B', $entity->getAddress()->getNumber());
-        $this->assertEquals('Seattle', $entity->getAddress()->getCity());
-        $this->assertEquals('123456', $entity->getAddress()->getZipCode());
-        $this->assertEquals(Province::Antwerp, $entity->getAddress()->getProvince());
-        $this->assertInstanceOf(Person::class, $entity->getBestFriend());
-        $this->assertInstanceOf(Address::class, $entity->getBestFriend()->getAddress());
+        $this->assertInstanceOf(Person::class, $newEntity);
+        $this->assertEquals('John', $newEntity->getFirstName());
+        $this->assertEquals('Doe', $newEntity->getLastName());
+        $this->assertInstanceOf(Address::class, $newEntity->getAddress());
+        $this->assertEquals('Main street', $newEntity->getAddress()->getStreet());
+        $this->assertEquals('5B', $newEntity->getAddress()->getNumber());
+        $this->assertEquals('Seattle', $newEntity->getAddress()->getCity());
+        $this->assertEquals('123456', $newEntity->getAddress()->getZipCode());
+        $this->assertEquals(Province::Antwerp, $newEntity->getAddress()->getProvince());
+        $this->assertInstanceOf(Person::class, $newEntity->getBestFriend());
+        $this->assertInstanceOf(Address::class, $newEntity->getBestFriend()->getAddress());
     }
 
     public function testEntityCreationAfterHydration(): void
     {
-        $friend = new Person(
-            'Luke',
-            'Skywalker',
-            new Address(
-                'Main street',
-                '5B',
-                '123456',
-                'Seattle',
-                Province::Antwerp
-            ),
-            null
-        );
+        $dto = UpdatePersonWithConstructor::fromEntity($this->dummyEntity);
 
-        $entity = new Person(
-            'John',
-            'Doe',
-            new Address(
-                'Main street',
-                '5B',
-                '123456',
-                'Seattle',
-                Province::Antwerp
-            ),
-            $friend
-        );
+        /** @var Person $this->>$this->dummyEntity */
+        $newEntity = $dto->create();
 
-        $dto = UpdatePersonWithConstructor::fromEntity($entity);
-
-        /** @var Person $entity */
-        $entity = $dto->create();
-
-        $this->assertInstanceOf(Person::class, $entity);
-        $this->assertEquals('Jesus', $entity->getFirstName());
-        $this->assertEquals('Doe', $entity->getLastName());
-        $this->assertInstanceOf(Address::class, $entity->getAddress());
-        $this->assertEquals('Main street', $entity->getAddress()->getStreet());
-        $this->assertEquals('5B', $entity->getAddress()->getNumber());
-        $this->assertEquals('Seattle', $entity->getAddress()->getCity());
-        $this->assertEquals('123456', $entity->getAddress()->getZipCode());
-        $this->assertEquals(Province::Antwerp, $entity->getAddress()->getProvince());
-        $this->assertInstanceOf(Person::class, $entity->getBestFriend());
-        $this->assertInstanceOf(Address::class, $entity->getBestFriend()->getAddress());
+        $this->assertInstanceOf(Person::class, $newEntity);
+        $this->assertEquals('Jesus', $newEntity->getFirstName());
+        $this->assertEquals('Doe', $newEntity->getLastName());
+        $this->assertInstanceOf(Address::class, $newEntity->getAddress());
+        $this->assertEquals('Main street', $newEntity->getAddress()->getStreet());
+        $this->assertEquals('5B', $newEntity->getAddress()->getNumber());
+        $this->assertEquals('Seattle', $newEntity->getAddress()->getCity());
+        $this->assertEquals('123456', $newEntity->getAddress()->getZipCode());
+        $this->assertEquals(Province::Antwerp, $newEntity->getAddress()->getProvince());
+        $this->assertInstanceOf(Person::class, $newEntity->getBestFriend());
+        $this->assertInstanceOf(Address::class, $newEntity->getBestFriend()->getAddress());
     }
 
     public function testUpdate(): void
     {
-        $friend = new Person(
-            'Luke',
-            'Skywalker',
-            new Address(
-                'Main street',
-                '5B',
-                'Seattle',
-                '123456',
-                Province::Antwerp
-            ),
-            null
-        );
-
-        $entity = new Person(
-            'John',
-            'Doe',
-            new Address(
-                'Main street',
-                '5B',
-                'Seattle',
-                '123456',
-                Province::Antwerp
-            ),
-            $friend
-        );
-
-        $dto = UpdatePerson::fromEntity($entity);
+        $dto = UpdatePerson::fromEntity($this->dummyEntity);
 
         $this->assertInstanceOf(PersonDataTransferObject::class, $dto);
         $this->assertInstanceOf(AddressDataTransferObject::class, $dto->address);
@@ -185,25 +117,24 @@ class AbstractDtoTest extends TestCase
 
     public function testUpdateWithSetValue(): void
     {
-        $entity = new Person(
-            'Luke',
-            'Skywalker',
-            new Address(
-                'Main street',
-                '5B',
-                'Seattle',
-                '123456',
-                Province::Antwerp
-            ),
-            null
-        );
-
-        $dto = UpdatePersonWithConstructor::fromEntity($entity);
+        $dto = UpdatePersonWithConstructor::fromEntity($this->dummyEntity);
 
         /** @var Person $updatedEntity */
         $updatedEntity = $dto->update();
 
         $this->assertNotEquals('Luke', $updatedEntity->getFirstName());
         $this->assertEquals('Jesus', $updatedEntity->getFirstName());
+    }
+
+    public function testDelete(): void
+    {
+        $dto = UpdatePerson::fromEntity($this->dummyEntity);
+
+        $dto->bestFriend = null;
+
+        /** @var Person $updatedEntity */
+        $updatedEntity = $dto->update();
+
+        $this->assertNull($updatedEntity->getBestFriend());
     }
 }

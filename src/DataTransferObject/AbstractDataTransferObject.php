@@ -13,7 +13,7 @@ abstract class AbstractDataTransferObject
     private ?object $entity = null;
     private string $mappedClass;
 
-    public static function fromEntity(object $entity): AbstractDataTransferObject
+    public static function fromEntity(object $entity): self
     {
         $class = static::class;
         $dto = new $class();

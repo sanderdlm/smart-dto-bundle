@@ -93,7 +93,7 @@ class EntityFactory
 
                 $propertyType = $parameter->getType();
                 if (!$parameter->isEntity() || !$entityValue instanceof $propertyType) {
-                    return$this->create($parameter->getType(), $parameter->getMatch());
+                    return $this->create($parameter->getType(), $parameter->getMatch());
                 }
 
                 $this->update($entityValue, $parameter->getMatch());

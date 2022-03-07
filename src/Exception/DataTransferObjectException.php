@@ -62,6 +62,15 @@ class DataTransferObjectException extends Exception
         ));
     }
 
+    public static function missingAbstractExtend(
+        string $className,
+    ): self {
+        return new self(sprintf(
+            'Class "%s" does not extend the AbstractDataTransferObject class.',
+            $className
+        ));
+    }
+
     public static function mappedClassMismatch(
         string $mappedClassName,
         string $passedClassname,

@@ -15,9 +15,13 @@ class DataTransferObjectHydrator
         'mappedClass',
     ];
 
-    public function hydrate(AbstractDataTransferObject $dto, object $entity): AbstractDataTransferObject
+    public function hydrate(object $dto, object $entity): AbstractDataTransferObject
     {
-        $class = get_class($dto);
+        $dtoClassName = get_class($dto);
+
+        if (!is_subclass_of($dto, AbstractDataTransferObject::class)) {
+            throw DataTransferObjectException::missingAbstractExtend($dtoClassName);
+        }
 
         $dto->setEntity($entity);
         $dto->setMappedClass();
@@ -26,7 +30,7 @@ class DataTransferObjectHydrator
         $propertyInfo = $this->createPropertyInfo();
 
         // Read all public properties of the child DTO that extends this class
-        $properties = $propertyInfo->getProperties($class);
+        $properties = $propertyInfo->getProperties($dtoClassName);
 
         if (!empty($properties)) {
             foreach ($properties as $propertyName) {
@@ -36,7 +40,7 @@ class DataTransferObjectHydrator
                 }
 
                 // If the property is not writable (a.k.a. public), skip it
-                if (!$propertyInfo->isWritable($class, $propertyName)) {
+                if (!$propertyInfo->isWritable($dtoClassName, $propertyName)) {
                     continue;
                 }
 
@@ -49,10 +53,10 @@ class DataTransferObjectHydrator
                 $entityValue = $propertyAccessor->getValue($entity, $propertyName);
 
                 // Get the property type & class name
-                $types = $propertyInfo->getTypes($class, $propertyName);
+                $types = $propertyInfo->getTypes($dtoClassName, $propertyName);
 
                 if (empty($types)) {
-                    throw DataTransferObjectException::missingPropertyTypeHint($propertyName, $class);
+                    throw DataTransferObjectException::missingPropertyTypeHint($propertyName, $dtoClassName);
                 }
 
                 $type = reset($types);
