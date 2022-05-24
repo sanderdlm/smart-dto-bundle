@@ -8,12 +8,18 @@ use Dreadnip\SmartDtoBundle\Exception\DataTransferObjectException;
 use Dreadnip\SmartDtoBundle\Hydration\DataTransferObjectHydrator;
 use Dreadnip\SmartDtoBundle\Mapping\AttributeReader;
 
+/**
+ * @template T of object
+ */
 abstract class AbstractDataTransferObject
 {
-    private ?object $entity = null;
+    /**
+     * @var class-string<T> $mappedClass
+     */
     private string $mappedClass;
+    private ?object $entity = null;
 
-    public static function fromEntity(object $entity): self
+    public static function fromEntity(object $entity): static
     {
         $class = static::class;
         $dto = new $class();
@@ -21,6 +27,9 @@ abstract class AbstractDataTransferObject
         return (new DataTransferObjectHydrator())->hydrate($dto, $entity);
     }
 
+    /**
+     * @return object<T>
+     */
     public function create(): object
     {
         $this->setMappedClass();
@@ -28,6 +37,9 @@ abstract class AbstractDataTransferObject
         return (new EntityFactory())->create($this->getMappedClass(), $this);
     }
 
+    /**
+     * @return object<T>
+     */
     public function update(): object
     {
         if ($this->getEntity() === null) {
@@ -37,6 +49,9 @@ abstract class AbstractDataTransferObject
         return (new EntityFactory())->update($this->getEntity(), $this);
     }
 
+    /**
+     * @return class-string<T>
+     */
     public function getMappedClass(): string
     {
         return $this->mappedClass;

@@ -2,6 +2,7 @@
 
 namespace Dreadnip\SmartDtoBundle\Test;
 
+use Dreadnip\SmartDtoBundle\Factory\EntityFactory;
 use Dreadnip\SmartDtoBundle\Test\Models\Address;
 use Dreadnip\SmartDtoBundle\Test\Models\AddressDataTransferObject;
 use Dreadnip\SmartDtoBundle\Test\Models\CreatePerson;
@@ -54,10 +55,15 @@ class AbstractDtoTest extends TestCase
 
     public function testEntityCreation(): void
     {
-        $dto = CreatePerson::fromEntity($this->dummyEntity);
+        $factory = new EntityFactory();
 
-        /** @var Person $newEntity */
+        $dto = CreatePerson::fromEntity($this->dummyEntity);
+        $dummy = $factory->create(Person::class, $dto);
+
         $newEntity = $dto->create();
+
+        $newEntity->
+
 
         $this->assertInstanceOf(Person::class, $newEntity);
         $this->assertEquals('John', $newEntity->getFirstName());

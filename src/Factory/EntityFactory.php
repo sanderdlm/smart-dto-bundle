@@ -11,6 +11,11 @@ use Symfony\Component\PropertyAccess\PropertyAccess;
 
 class EntityFactory
 {
+    /**
+     * @template T of object
+     * @param class-string<T> $class
+     * @return T
+     */
     public function create(string $class, AbstractDataTransferObject $dto): object
     {
         if (!method_exists($class, '__construct')) {
@@ -26,6 +31,11 @@ class EntityFactory
         return new $class(...$resolvedParameters);
     }
 
+    /**
+     * @template T of object
+     * @param T $entity
+     * @return T
+     */
     public function update(object $entity, AbstractDataTransferObject $dto): object
     {
         if (!method_exists($entity, 'update')) {
