@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Dreadnip\SmartDtoBundle\Test\Models;
 
 use Doctrine\ORM\Mapping as ORM;
+use Dreadnip\SmartDtoBundle\Attribute\MapsTo;
 
 #[ORM\Embeddable]
+#[MapsTo(dataTransferObject: AddressDataTransferObject::class)]
 class Address
 {
     #[ORM\Column]

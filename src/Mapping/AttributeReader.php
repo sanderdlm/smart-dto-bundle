@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Dreadnip\SmartDtoBundle\Mapping;
 
 use Dreadnip\SmartDtoBundle\Exception\DataTransferObjectException;

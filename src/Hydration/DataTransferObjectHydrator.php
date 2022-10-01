@@ -1,30 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Dreadnip\SmartDtoBundle\Hydration;
 
-use Dreadnip\SmartDtoBundle\DataTransferObject\AbstractDataTransferObject;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping\Entity;
+use Dreadnip\SmartDtoBundle\Attribute\MapsTo;
+use Dreadnip\SmartDtoBundle\DataMapperTrait;
 use Dreadnip\SmartDtoBundle\Exception\DataTransferObjectException;
+use Dreadnip\SmartDtoBundle\Mapping\AttributeReader;
+use RuntimeException;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\PropertyInfo\Extractor\ReflectionExtractor;
 use Symfony\Component\PropertyInfo\PropertyInfoExtractor;
 
 class DataTransferObjectHydrator
 {
-    private const INTERNAL_PROPERTIES = [
-        'entity',
-        'mappedClass',
-    ];
-
-    public function hydrate(object $dto, object $entity): AbstractDataTransferObject
+    public function hydrate(object $dto, object $entity): object
     {
         $dtoClassName = get_class($dto);
 
-        if (!is_subclass_of($dto, AbstractDataTransferObject::class)) {
-            throw DataTransferObjectException::missingAbstractExtend($dtoClassName);
+        if (!$this->hasDataMapperTrait($dto)) {
+            throw DataTransferObjectException::missingTrait($dtoClassName);
         }
-
-        $dto->setEntity($entity);
-        $dto->setMappedClass();
 
         $propertyAccessor = PropertyAccess::createPropertyAccessor();
         $propertyInfo = $this->createPropertyInfo();
@@ -32,50 +32,80 @@ class DataTransferObjectHydrator
         // Read all public properties of the child DTO that extends this class
         $properties = $propertyInfo->getProperties($dtoClassName);
 
-        if (!empty($properties)) {
-            foreach ($properties as $propertyName) {
-                // Skip the internal properties of the abstract DTO
-                if (in_array($propertyName, self::INTERNAL_PROPERTIES)) {
+        if ($properties !== null) {
+            foreach ($properties as $property) {
+                if (!$propertyInfo->isWritable($dtoClassName, $property)) {
                     continue;
                 }
 
-                // If the property is not writable (a.k.a. public), skip it
-                if (!$propertyInfo->isWritable($dtoClassName, $propertyName)) {
-                    continue;
-                }
+                $sourceValue = $propertyAccessor->getValue($entity, $property);
 
-                // If a property is already set in the constructor, don't override it
-                if ($dto->{$propertyName} !== null) {
-                    continue;
-                }
-
-                // Get the value from the passed entity object
-                $entityValue = $propertyAccessor->getValue($entity, $propertyName);
-
-                // Get the property type & class name
-                $types = $propertyInfo->getTypes($dtoClassName, $propertyName);
+                $types = $propertyInfo->getTypes($dtoClassName, $property);
 
                 if (empty($types)) {
-                    throw DataTransferObjectException::missingPropertyTypeHint($propertyName, $dtoClassName);
+                    throw DataTransferObjectException::missingPropertyTypeHint($property, $dtoClassName);
                 }
 
                 $type = reset($types);
-                $className = $type->getClassName();
 
-                // If the property is a class that extends this class, handle it recursively
-                if (
-                    $className !== null &&
-                    $entityValue !== null &&
-                    is_subclass_of($className, AbstractDataTransferObject::class)
-                ) {
-                    $dto->{$propertyName} = $className::fromEntity($entityValue);
-                } else {
-                    $dto->{$propertyName} = $entityValue;
-                }
+                $dto->{$property} = $this->getPropertyValue($type->getClassName(), $sourceValue);
             }
         }
 
         return $dto;
+    }
+
+    private function getPropertyValue(?string $className, mixed $sourceValue): mixed
+    {
+        if ($sourceValue === null) {
+            return null;
+        }
+
+        if ($className === null) {
+            return $sourceValue;
+        }
+
+        if ($this->hasDataMapperTrait($className)) {
+            return $className::from($sourceValue);
+        }
+
+        if ($sourceValue instanceof Collection) {
+            $collectionAsArray = $sourceValue->toArray();
+
+            foreach ($collectionAsArray as &$item) {
+                $itemClass = get_class($item);
+
+                if (!$itemClass) {
+                    continue;
+                }
+
+                if (AttributeReader::getAttribute($itemClass, Entity::class) === null) {
+                    continue;
+                }
+
+                /** @var ?MapsTo $mapsToAttribute */
+                $mapsToAttribute = AttributeReader::getAttribute($itemClass, MapsTo::class);
+
+                if ($mapsToAttribute === null) {
+                    throw new RuntimeException(sprintf(
+                        'Entity %s is missing the MapsTo attribute with the matching DTO.',
+                        $itemClass
+                    ));
+                }
+
+                $mappedDTO = $mapsToAttribute->dataTransferObject;
+
+                if (!$this->hasDataMapperTrait($mappedDTO)) {
+                    continue;
+                }
+
+                $item = $mappedDTO::from($item);
+            }
+
+            return new ArrayCollection($collectionAsArray);
+        }
+
+        return $sourceValue;
     }
 
     private function createPropertyInfo(): PropertyInfoExtractor
@@ -88,5 +118,10 @@ class DataTransferObjectHydrator
             [],
             [$reflectionExtractor],
         );
+    }
+
+    private function hasDataMapperTrait(string|object $class): bool
+    {
+        return is_array(class_uses($class)) && in_array(DataMapperTrait::class, class_uses($class));
     }
 }

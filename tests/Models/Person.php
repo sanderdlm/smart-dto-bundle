@@ -7,8 +7,10 @@ namespace Dreadnip\SmartDtoBundle\Test\Models;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Dreadnip\SmartDtoBundle\Attribute\MapsTo;
 
 #[ORM\Entity]
+#[MapsTo(dataTransferObject: PersonDataTransferObject::class)]
 class Person
 {
     #[ORM\Id]
@@ -86,5 +88,10 @@ class Person
     public function getFriends(): ArrayCollection|Collection
     {
         return $this->friends;
+    }
+
+    public function addFriend(Person $friend): void
+    {
+        $this->friends->add($friend);
     }
 }

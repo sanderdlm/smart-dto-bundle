@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Dreadnip\SmartDtoBundle\Test\Models;
 
 use Doctrine\Common\Collections\Collection;
-use Dreadnip\SmartDtoBundle\Attribute\MapsTo;
-use Dreadnip\SmartDtoBundle\DataTransferObject\AbstractDataTransferObject;
+use Dreadnip\SmartDtoBundle\DataMapperTrait;
 
-#[MapsTo(entity:Person::class)]
-class PersonDataTransferObject extends AbstractDataTransferObject
+class PersonDataTransferObject
 {
+    use DataMapperTrait;
+
     public ?string $firstName = null;
 
     public ?string $lastName = null;
