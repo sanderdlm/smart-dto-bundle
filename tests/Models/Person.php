@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dreadnip\SmartDtoBundle\Test\Models;
 
+use DateTime;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -33,31 +34,22 @@ class Person
     #[ORM\ManyToMany(targetEntity: Person::class, inversedBy:"buddies")]
     private Collection $friends;
 
+    #[ORM\Column(nullable: true)]
+    private ?DateTime $lastCheckIn;
+
     public function __construct(
         string $firstName,
         string $lastName,
         Address $address,
-        ?Person $bestFriend
+        ?Person $bestFriend = null,
+        ?DateTime $lastCheckIn = null
     ) {
         $this->firstName = $firstName;
         $this->lastName = $lastName;
         $this->address = $address;
         $this->bestFriend = $bestFriend;
+        $this->lastCheckIn = $lastCheckIn;
         $this->friends = new ArrayCollection();
-    }
-
-    public function update(
-        string $firstName,
-        string $lastName,
-        Address $address,
-        ?Person $bestFriend,
-        Collection $friends
-    ): void {
-        $this->firstName = $firstName;
-        $this->lastName = $lastName;
-        $this->address = $address;
-        $this->bestFriend = $bestFriend;
-        $this->friends = $friends;
     }
 
     public function getId(): ?int
@@ -93,5 +85,10 @@ class Person
     public function addFriend(Person $friend): void
     {
         $this->friends->add($friend);
+    }
+
+    public function getLastCheckIn(): ?DateTime
+    {
+        return $this->lastCheckIn;
     }
 }
