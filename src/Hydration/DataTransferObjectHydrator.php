@@ -73,6 +73,10 @@ class DataTransferObjectHydrator
             $collectionAsArray = $sourceValue->toArray();
 
             foreach ($collectionAsArray as &$item) {
+                if (!is_object($item)) {
+                    continue;
+                }
+
                 $itemClass = get_class($item);
 
                 if (!$itemClass) {
