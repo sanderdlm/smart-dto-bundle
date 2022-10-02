@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Dreadnip\SmartDtoBundle\Test\Models;
 
-use Dreadnip\SmartDtoBundle\Attribute\MapsTo;
-use Dreadnip\SmartDtoBundle\DataTransferObject\AbstractDataTransferObject;
+use Dreadnip\SmartDtoBundle\DataMapperTrait;
 
-#[MapsTo(entity:Address::class)]
-class AddressDataTransferObject extends AbstractDataTransferObject
+class AddressDataTransferObject
 {
+    use DataMapperTrait;
+
     public ?string $street = null;
 
     public ?string $number = null;

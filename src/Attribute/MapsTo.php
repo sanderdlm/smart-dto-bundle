@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Dreadnip\SmartDtoBundle\Attribute;
 
 use Attribute;
@@ -7,16 +9,8 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS)]
 final class MapsTo
 {
-    private string $entity;
-
     public function __construct(
-        string $entity
+        public readonly string $dataTransferObject
     ) {
-        $this->entity = $entity;
-    }
-
-    public function getEntity(): string
-    {
-        return $this->entity;
     }
 }

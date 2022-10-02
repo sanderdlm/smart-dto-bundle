@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Dreadnip\SmartDtoBundle\Test\Models;
 
+use DateTime;
 use Doctrine\Common\Collections\Collection;
-use Dreadnip\SmartDtoBundle\Attribute\MapsTo;
-use Dreadnip\SmartDtoBundle\DataTransferObject\AbstractDataTransferObject;
+use Dreadnip\SmartDtoBundle\DataMapperTrait;
 
-#[MapsTo(entity:Person::class)]
-class PersonDataTransferObject extends AbstractDataTransferObject
+class PersonDataTransferObject
 {
+    use DataMapperTrait;
+
     public ?string $firstName = null;
 
     public ?string $lastName = null;
@@ -18,6 +19,8 @@ class PersonDataTransferObject extends AbstractDataTransferObject
     public ?AddressDataTransferObject $address = null;
 
     public ?PersonDataTransferObject $bestFriend = null;
+
+    public ?DateTime $lastCheckIn = null;
 
     public ?Collection $friends = null;
 }
