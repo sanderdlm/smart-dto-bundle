@@ -28,11 +28,12 @@ class PersonDataTransferObject
 ```
 
 Person entity:
+
 ```php
 <?php
 
 #[ORM\Entity(repositoryClass: PersonRepository::class)]
-#[MapsTo(entity:Person::class)]
+#[MapsTo(dataTransferObject: PersonDataTransferObject::class)]
 class Person
 {
     #[ORM\Id]
